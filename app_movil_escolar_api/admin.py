@@ -5,7 +5,8 @@ from app_movil_escolar_api.models import *
 
 @admin.register(Administradores)
 # TODO: Aquí agregarán los otros dos
-
+@admin.register(Maestros)
+@admin.register(Alumnos)
 class ProfilesAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "creation", "update")
     search_fields = ("user__username", "user__email", "user__first_name", "user__last_name")
