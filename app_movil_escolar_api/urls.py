@@ -15,13 +15,28 @@ urlpatterns = [
     #Admin Data
         path('lista-admins/', users.AdminAll.as_view()),
     #Edit Admin
-        #path('admins-edit/', users.AdminsViewEdit.as_view())
+        path('admin/<int:id>/', users.AdminsViewEdit.as_view()),
 
     #Create Maestro
     path('maestros/', maestros.MaestroView.as_view()),
-
+    #Maestro Data
+        path('lista-maestros/', maestros.MaestrosAll.as_view()),
+    #Edit Maestro
+    path('maestros/<int:id>/', maestros.MaestroViewEdit.as_view()),
+    
     #Create Alumno
     path('alumnos/', alumnos.AlumnoView.as_view()),
+    #Edit Alumno
+    path('alumnos/<int:id>/', alumnos.AlumnoViewEdit.as_view()),
+
+    #Maestro Data
+        path('lista-alumnos/', alumnos.AlumnosAll.as_view()),
+    
+
+    #Login
+        path('login/', auth.CustomAuthToken.as_view()),
+    #Logout
+        path('logout/', auth.Logout.as_view())
 
 ]
 

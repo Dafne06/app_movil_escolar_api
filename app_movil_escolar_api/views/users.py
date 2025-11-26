@@ -8,15 +8,35 @@ from rest_framework import generics
 from rest_framework import status
 from rest_framework.response import Response
 from django.contrib.auth.models import Group
+import json
+from django.shortcuts import get_object_or_404
+
 
 class AdminAll(generics.CreateAPIView):
+    #Esta función es esencial para todo donde se requiera autorización de inicio de sesión (token)
     permission_classes = (permissions.IsAuthenticated,)
+    # Invocamos la petición GET para obtener todos los administradores
     def get(self, request, *args, **kwargs):
-        user = request.user
-        #TODO: Regresar perfil del usuario
-        return Response({})
+        admin = Administradores.objects.filter(user__is_active = 1).order_by("id")
+        lista = AdminSerializer(admin, many=True).data
+        return Response(lista, 200)
 
 class AdminView(generics.CreateAPIView):
+    # Permisos por método (sobrescribe el comportamiento default)
+    # Verifica que el usuario esté autenticado para las peticiones GET, PUT y DELETE
+    def get_permissions(self):
+        if self.request.method in ['GET', 'PUT', 'DELETE']:
+            return [permissions.IsAuthenticated()]
+        return []  # POST no requiere autenticación
+
+    #Obtener usuario por ID
+    # Verifica que el usuario esté autenticado
+    def get(self, request, *args, **kwargs):
+        admin = get_object_or_404(Administradores, id = request.GET.get("id"))
+        admin = AdminSerializer(admin, many=False).data
+        # Si todo es correcto, regresamos la información
+        return Response(admin, 200)
+    
     #Registrar nuevo usuario
     @transaction.atomic
     def post(self, request, *args, **kwargs):
@@ -64,3 +84,82 @@ class AdminView(generics.CreateAPIView):
             return Response({"admin_created_id": admin.id }, 201)
 
         return Response(user.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @transaction.atomic
+    def delete(self, request, *args, **kwargs):
+     admin = get_object_or_404(Administradores, id=request.GET.get("id"))
+     try:
+         admin.user.delete()  # elimina también al usuario de auth_user
+         return Response({"details": "Administrador eliminado"}, 200)
+     except:
+         return Response({"details": "Error eliminando administrador"}, 400)
+    
+class AdminsViewEdit(generics.CreateAPIView):
+     # Actualizar datos del administrador
+    @transaction.atomic
+    def put(self, request, *args, **kwargs):
+    # Verificamos que el usuario esté autenticado
+    #permission_classes = (permissions.IsAuthenticated,)
+    # Primero obtenemos el administrador a actualizar
+        admin = get_object_or_404(Administradores, id=request.data["id"])
+        admin.clave_admin = request.data["clave_admin"]
+        admin.telefono = request.data["telefono"]
+        admin.rfc = request.data["rfc"]
+        admin.edad = request.data["edad"]
+        admin.ocupacion = request.data["ocupacion"]
+        admin.save()
+        # Actualizamos los datos del usuario asociado (tabla auth_user de Django)
+        user = admin.user
+        user.first_name = request.data["first_name"]
+        user.last_name = request.data["last_name"]
+        user.save()
+        
+        return Response({"message": "Administrador actualizado correctamente", "admin": AdminSerializer(admin).data}, 200)
+        # return Response(user,200)
+        
+    # Eliminar administrador con delete (Borrar realmente)
+    # TODO: Agregar eliminación de administradores
+    # Eliminar administrador
+    #@transaction.atomic
+    #def delete(self, request, *args, **kwargs):
+    # admin = get_object_or_404(Administradores, id=request.GET.get("id"))
+    # try:
+    #     admin.user.delete()  # elimina también al usuario de auth_user
+    #     return Response({"details": "Administrador eliminado"}, 200)
+    # except:
+    #     return Response({"details": "Error eliminando administrador"}, 400)
+
+
+class TotalUsers(generics.CreateAPIView):
+    #Contar el total de cada tipo de usuarios
+    def get(self, request, *args, **kwargs):
+        # TOTAL ADMINISTRADORES
+        admin_qs = Administradores.objects.filter(user__is_active=True)
+        total_admins = admin_qs.count()
+
+        # TOTAL MAESTROS
+        maestros_qs = Maestros.objects.filter(user__is_active=True)
+        lista_maestros = MaestroSerializer(maestros_qs, many=True).data
+
+        # Convertir materias_json solo si existen maestros
+        for maestro in lista_maestros:
+            try:
+                maestro["materias_json"] = json.loads(maestro["materias_json"])
+            except Exception:
+                maestro["materias_json"] = []  # fallback seguro
+
+        total_maestros = maestros_qs.count()
+
+        # TOTAL ALUMNOS
+        alumnos_qs = Alumnos.objects.filter(user__is_active=True)
+        total_alumnos = alumnos_qs.count()
+
+        # Respuesta final SIEMPRE válida
+        return Response(
+            {
+                "admins": total_admins,
+                "maestros": total_maestros,
+                "alumnos": total_alumnos
+            },
+            status=200
+        )

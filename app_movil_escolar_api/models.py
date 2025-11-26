@@ -45,7 +45,8 @@ class Maestros(models.Model):
     update = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     def __str__(self):
-        return f"Perfil del maestro {self.user.first_name} {self.user.last_name}"
+        return "Perfil del maestro "+self.user.first_name+" "+self.user.last_name
+        #return f"Perfil del maestro {self.user.first_name} {self.user.last_name}"
     
 
 # Modelo de Alumnos
@@ -64,4 +65,5 @@ class Alumnos(models.Model):
     update = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     def __str__(self):
-        return f"Perfil del alumno {self.user.first_name} {self.user.last_name}"
+        return "Perfil del alumno "+self.user.first_name+" "+self.user.last_name
+        #return f"Perfil del alumno {self.user.first_name} {self.user.last_name}"
